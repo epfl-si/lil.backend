@@ -90,6 +90,7 @@ export async function createIntoRMM () {
 async function createLocation (location: Record<string, string | number>, code: Code) {
   const createdLocation = await callRMM('/epfl/erd-services/json/import/createLocation', location);
   if (createdLocation.status === 1 || createdLocation.message.indexOf(' exists') > -1) {
+    console.log(createdLocation);
     // If code correctly created on RMM, or it already exists, change status on LIL to Created
     console.log(`${code.barcode} CREATED`);
     await prisma.$transaction(async (tx) => {
