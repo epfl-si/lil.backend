@@ -82,9 +82,14 @@ export async function getRoomFromApiByName(name: string): Promise<any> {
   return rooms.rooms.map((u: { name: string; building: { name: string; site: { label: string; }; }; floor: string; }) => ({
     name: u.name,
     building: u.building.name,
-    site: u.building.site.label === 'ECUBLENS' ? 'LAUSANNE' : u.building.site.label,
+    site: convertInRMMSite(u.building.site.label),
     floor: u.floor
   }))[0];
+}
+
+function convertInRMMSite(apiSite: string) {
+  const siteMapping: Record<string, string> = JSON.parse(process.env.RMM_SITE_MAPPING ?? '{}');
+  return siteMapping[apiSite] ?? apiSite;
 }
 
 export async function getUserFromApi(sciper: string): Promise<any[]> {
