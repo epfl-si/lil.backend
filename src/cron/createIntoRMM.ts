@@ -22,49 +22,55 @@ export async function createIntoRMM () {
   for ( const codeToBeCreated of codesToBeCreated) {
     // Call api to get Site>Building>Floor given the room
     const room: { name: string; building: string; site: string; floor: string; } = await getRoomFromApiByName(codeToBeCreated.roomName);
-    // Call RMM to create location
-    const locationPayload: Record<string, string | number> = {
-      site: room.site,
-      building: room.building,
-      floor: room.floor,
-      room: room.name,
-      roomType: codeToBeCreated.roomType
-    };
-    if (codeToBeCreated.locationName === 'storage') {
-      locationPayload.sublocationName1 = codeToBeCreated.barcode;
-    } else if (codeToBeCreated.locationName === 'shelf') {
-      locationPayload.sublocationName1 = codeToBeCreated.parentNiv1;
-      locationPayload.sublocationName2 = codeToBeCreated.barcode;
-    } else if (codeToBeCreated.locationName === 'box') {
-      locationPayload.sublocationName1 = codeToBeCreated.parentNiv2;
-      locationPayload.sublocationName2 = codeToBeCreated.parentNiv1;
-      locationPayload.sublocationName3 = codeToBeCreated.barcode;
-    }
 
-    if (codeToBeCreated.roomType === 'LAB') {
-      const error = await createLocation(locationPayload, codeToBeCreated);
-      if (error) {
-        addCode(errorCodesByUser, codeToBeCreated.createdBy, `<b>${codeToBeCreated.barcode}</b>: ${error}`);
-      } else {
-        addCode(createdCodesByUser, codeToBeCreated.createdBy, codeToBeCreated.barcode);
-      }
+    const allowedCities = process.env.ALLOWED_CITIES?.split(',') ?? [];
+    if (!allowedCities.includes(room.site)) {
+      addCode(errorCodesByUser, codeToBeCreated.createdBy, `<b>${codeToBeCreated.barcode}</b>: The site is not permitted - ${room.site}`);
     } else {
-      // Check in RMM if room already exists
-      const roomInRMM = await callRMM('/epfl/erd-services/json/containersearch/search',
-        {locations: `${room.site}>${room.building}>${room.floor}>${codeToBeCreated.roomName}`, status: 5, timezoneoffset: 0});
-      if (roomInRMM.totalResults === null) {
-        const message = `Room <b>${codeToBeCreated.roomName}</b> - (${codeToBeCreated.roomType}) can't be created in RMM.`;
-        addCode(errorCodesByUser, codeToBeCreated.createdBy, message);
+      // Call RMM to create location
+      const locationPayload: Record<string, string | number> = {
+        site: room.site,
+        building: room.building,
+        floor: room.floor,
+        room: room.name,
+        roomType: codeToBeCreated.roomType
+      };
+      if (codeToBeCreated.locationName === 'storage') {
+        locationPayload.sublocationName1 = codeToBeCreated.barcode;
+      } else if (codeToBeCreated.locationName === 'shelf') {
+        locationPayload.sublocationName1 = codeToBeCreated.parentNiv1;
+        locationPayload.sublocationName2 = codeToBeCreated.barcode;
+      } else if (codeToBeCreated.locationName === 'box') {
+        locationPayload.sublocationName1 = codeToBeCreated.parentNiv2;
+        locationPayload.sublocationName2 = codeToBeCreated.parentNiv1;
+        locationPayload.sublocationName3 = codeToBeCreated.barcode;
+      }
 
-        await prisma.$transaction(async (tx) => {
-          await setLocationsRMMCode(tx, codeToBeCreated.locationName, [codeToBeCreated.barcode], 'ErrorCreating', message);
-        });
-      } else {
+      if (codeToBeCreated.roomType === 'LAB') {
         const error = await createLocation(locationPayload, codeToBeCreated);
         if (error) {
           addCode(errorCodesByUser, codeToBeCreated.createdBy, `<b>${codeToBeCreated.barcode}</b>: ${error}`);
         } else {
           addCode(createdCodesByUser, codeToBeCreated.createdBy, codeToBeCreated.barcode);
+        }
+      } else {
+        // Check in RMM if room already exists
+        const roomInRMM = await callRMM('/epfl/erd-services/json/containersearch/search',
+          {locations: `${room.site}>${room.building}>${room.floor}>${codeToBeCreated.roomName}`, status: 5, timezoneoffset: 0});
+        if (roomInRMM.totalResults === null) {
+          const message = `Room <b>${codeToBeCreated.roomName}</b> - (${codeToBeCreated.roomType}) can't be created in RMM.`;
+          addCode(errorCodesByUser, codeToBeCreated.createdBy, message);
+
+          await prisma.$transaction(async (tx) => {
+            await setLocationsRMMCode(tx, codeToBeCreated.locationName, [codeToBeCreated.barcode], 'ErrorCreating', message);
+          });
+        } else {
+          const error = await createLocation(locationPayload, codeToBeCreated);
+          if (error) {
+            addCode(errorCodesByUser, codeToBeCreated.createdBy, `<b>${codeToBeCreated.barcode}</b>: ${error}`);
+          } else {
+            addCode(createdCodesByUser, codeToBeCreated.createdBy, codeToBeCreated.barcode);
+          }
         }
       }
     }
