@@ -25,6 +25,9 @@ export async function createIntoRMM () {
 
     const allowedCities = process.env.ALLOWED_CITIES?.split(',') ?? [];
     if (!allowedCities.includes(room.site)) {
+      await prisma.$transaction(async (tx) => {
+        await setLocationsRMMCode(tx, codeToBeCreated.locationName, [codeToBeCreated.barcode], 'ErrorCreating', `The site is not permitted - ${room.site}`);
+      });
       addCode(errorCodesByUser, codeToBeCreated.createdBy, `<b>${codeToBeCreated.barcode}</b>: The site is not permitted - ${room.site}`);
     } else {
       // Call RMM to create location
