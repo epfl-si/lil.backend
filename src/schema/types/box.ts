@@ -1,6 +1,6 @@
 import {builder} from "../builder";
 import {z} from 'zod';
-import {getUserString} from "../../lib/user";
+import {getUserForMutation, getUserString} from "../../lib/user";
 import {restoreLocation} from "./location";
 import {RMMCodeStatus} from '../../../generated/prisma';
 
@@ -25,9 +25,13 @@ builder.mutationType({
       },
       args: {
         parentBarcode: t.arg.string(),
+        userSciper: t.arg.int(),
+        userName: t.arg.string()
       },
       validate: z.object({
         parentBarcode: z.string().nonempty(),
+        userSciper: z.int().optional(),
+        userName: z.string().optional()
       }),
       resolve: async (root, args, ctx: any) => {
         const parent = await ctx.prisma.shelf.findUnique({
@@ -49,7 +53,7 @@ builder.mutationType({
         }
 
         return await ctx.prisma.$transaction(async (tx: any) => {
-          const box = await createBox(tx, args.parentBarcode!, parent, ctx.user);
+          const box = await createBox(tx, args.parentBarcode!, parent, getUserForMutation(ctx.user, args.userSciper, args.userName));
           return box.barcode;
         });
       },
