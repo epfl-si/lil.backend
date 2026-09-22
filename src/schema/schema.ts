@@ -35,5 +35,6 @@ import './types/storageType';
 import './types/storageSubType';
 import './types/allowedTypeValues';
 import './types/suggestRoomApi';
+import './types/suggestUserApi';
 
 export const schema = builder.toSchema();

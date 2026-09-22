@@ -66,6 +66,12 @@ export async function getRoomsFromApi(search: string): Promise<any> {
   return await callExternalApi(url, getApiBasicAuth());
 }
 
+export async function getUsersFromApi(search: string): Promise<any> {
+  const url = `${process.env.API_EPFL_CH_URL}/persons?query=${encodeURIComponent(search)}&isaccredited=1`;
+
+  return await callExternalApi(url, getApiBasicAuth());
+}
+
 export async function getRoomFromApiById(id: number): Promise<any> {
   const url = `${process.env.API_EPFL_CH_URL}/rooms/${id}`;
 

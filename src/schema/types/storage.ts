@@ -2,7 +2,7 @@ import {builder} from "../builder";
 import {z} from 'zod';
 import {getTypesEnum} from "../../lib/enum";
 import {getRoomFromApiById} from "../../lib/api";
-import {getUserString} from "../../lib/user";
+import {getUserForMutation, getUserString} from "../../lib/user";
 import {restoreLocation} from "./location";
 import {RMMCodeStatus} from '../../../generated/prisma';
 
@@ -189,6 +189,8 @@ builder.mutationType({
         productType: t.arg.string(),
         storageType: t.arg.string(),
         storageSubType: t.arg.string(),
+        userSciper: t.arg.int(),
+        userName: t.arg.string()
       },
       validate: z.object({
         roomId: z.int().nonnegative(),
@@ -196,6 +198,8 @@ builder.mutationType({
         productType: z.string().nonempty(),
         storageType: z.string().nonempty(),
         storageSubType: z.string().nonempty(),
+        userSciper: z.int().optional(),
+        userName: z.string().optional()
       }),
       resolve: async (root, args, ctx: any) => {
 
@@ -209,7 +213,8 @@ builder.mutationType({
           throw new Error("The selected room doesn't exist.");
         }
         return await ctx.prisma.$transaction(async (tx: any) => {
-          const storage = await createStorage(tx, room.name, args.roomId!, args.roomType!, args.productType!, args.storageType!, args.storageSubType!, ctx.user);
+          const storage = await createStorage(tx, room.name, args.roomId!, args.roomType!, args.productType!, args.storageType!, args.storageSubType!,
+            getUserForMutation(ctx.user, args.userSciper, args.userName));
           return storage.barcode;
         });
       },
