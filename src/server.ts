@@ -8,6 +8,7 @@ import { Request } from "express-serve-static-core";
 import { ParsedQs } from "qs";
 import cors from 'cors';
 import {getPrismaForUser} from "./lib/auditablePrisma";
+import {makeRESTHealthAPI} from "./api/monitoring";
 
 export async function makeServer() {
   const app = express();
@@ -32,6 +33,8 @@ export async function makeServer() {
         return {prisma, user};
       }
     }));
+
+  app.use("/health", makeRESTHealthAPI());
 
   async function authenticate(req: Request<{}, any, any, ParsedQs, Record<string, any>>) {
     return await authenticateFromBearerToken(req);
