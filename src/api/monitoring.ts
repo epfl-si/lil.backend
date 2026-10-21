@@ -6,7 +6,7 @@ export function makeRESTHealthAPI() {
 
 	app.get("/",
 		async (req: Request, res) => {
-			res.json({Message: "Server up"});
+			res.json({status: "up"});
 		});
 
 	return app;
